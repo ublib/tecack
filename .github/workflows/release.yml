@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      # Trusted publishing (OIDC) needs npm >= 11.5.1, which is newer than the
+      # npm bundled with any current Node release line.
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Check the tag matches the version
+        if: github.ref_type == 'tag'
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$version" ]; then
+            echo "tag v$tag does not match package.json version $version" >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
+      # No token: the registry authenticates the workflow itself over OIDC, so
+      # each package needs `npm trust github <pkg> --file release.yml` once.
+      - name: Publish
+        run: |
+          for pkg in tecack frontend backend dataset shared tools; do
+            npm publish "packages/$pkg" --access public
+          done

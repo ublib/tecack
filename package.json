@@ -21,7 +21,7 @@
   },
   "scripts": {
     "prepare": "husky install",
-    "deploy": "nr build && sh scripts/deploy.sh",
+    "deploy": "pnpm run build && sh scripts/deploy.sh",
     "build": "tsx build",
     "fmt": "prettier",
     "lint": "ESLINT_USE_FLAT_CONFIG=true eslint",
