@@ -1,6 +1,6 @@
 {
   "name": "@tecack/backend",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "@tecack/backend",
   "main": "dist/index.js",
   "author": "Ubugeeei <ubuge1122@gmail.com>",
