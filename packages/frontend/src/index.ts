@@ -364,10 +364,14 @@ export function createTecack(options?: TecackOptions): Tecack {
         _dot_flag = false;
       }
     }
+    // NOTE: `_currentLine` is discarded once it has been recorded so that a redundant
+    // "up" / "out" (e.g. a palm touch on tablets fires an extra `touchend`) does not
+    // record the very same stroke again.
     if (res == "up") {
       _flagDown = false;
       if (_flagOver == true && _currentLine) {
         _recordedPattern.push(_currentLine);
+        _currentLine = null;
       }
     }
 
@@ -375,6 +379,7 @@ export function createTecack(options?: TecackOptions): Tecack {
       _flagOver = false;
       if (_flagDown == true && _currentLine) {
         _recordedPattern.push(_currentLine);
+        _currentLine = null;
       }
       _flagDown = false;
     }
