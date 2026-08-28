@@ -108,6 +108,9 @@ export function createTecack(options?: TecackOptions): Tecack {
   let _dot_flag: boolean = false;
   let _recordedPattern: Array<TecackStroke> = new Array();
   let _currentLine: TecackStroke | null = null;
+  let _activeTouchId: number | null = null;
+
+  type PointerPhase = "move" | "down" | "up" | "out" | "over" | "cancel";
 
   const listeners: { [event: Parameters<typeof document.addEventListener>[0]]: (e: Event) => void } = {
     mousemove: e => _find_x_y("move", e as MouseEvent),
@@ -118,6 +121,7 @@ export function createTecack(options?: TecackOptions): Tecack {
     touchmove: e => _find_x_y("move", e as TouchEvent),
     touchstart: e => _find_x_y("down", e as TouchEvent),
     touchend: e => _find_x_y("up", e as TouchEvent),
+    touchcancel: e => _find_x_y("cancel", e as TouchEvent),
   };
 
   // NOTE: Initialized with null or undefined to ensure compatibility with pre-fork implementations.
@@ -336,11 +340,16 @@ export function createTecack(options?: TecackOptions): Tecack {
     },
   };
 
-  const _find_x_y = (res: string, e: MouseEvent | TouchEvent): void | CanvasCtxNotFoundError => {
+  const _find_x_y = (res: PointerPhase, e: MouseEvent | TouchEvent): void | CanvasCtxNotFoundError => {
     const isTouch = isTouchEvent(e);
-    var touch = isTouch ? e.changedTouches[0] : null;
+    var touch = isTouch ? getTrackedTouch(res, e) : null;
 
-    if (isTouch) e.preventDefault(); // prevent scrolling while drawing to the canvas
+    if (isTouch) {
+      e.preventDefault(); // prevent scrolling while drawing to the canvas
+      if (!touch) {
+        return;
+      }
+    }
 
     if (res == "down" && _canvas) {
       var rect = _canvas.getBoundingClientRect();
@@ -382,6 +391,12 @@ export function createTecack(options?: TecackOptions): Tecack {
         _currentLine = null;
       }
       _flagDown = false;
+    }
+
+    if (res == "cancel") {
+      _currentLine = null;
+      _flagDown = false;
+      _flagOver = false;
     }
 
     if (res == "move" && _canvas) {
@@ -439,6 +454,54 @@ export function createTecack(options?: TecackOptions): Tecack {
     new CanvasCtxNotFoundError(`CanvasRenderingContext2D for Canvas#${_selector} was not found.`);
 
   const isTouchEvent = (e: unknown): e is TouchEvent => typeof e === "object" && e !== null && "changedTouches" in e;
+
+  const getTrackedTouch = (res: PointerPhase, e: TouchEvent): Touch | null => {
+    if (res == "down") {
+      const activeTouchIsStale = _activeTouchId !== null && !findTouchByIdentifier(e.touches, _activeTouchId);
+      const touch = findStylusTouch(e.changedTouches) ?? firstTouch(e.changedTouches);
+      if (!touch) {
+        return null;
+      }
+      if (_activeTouchId !== null && !activeTouchIsStale && !isStylusTouch(touch)) {
+        return null;
+      }
+      _activeTouchId = touch.identifier;
+      return touch;
+    }
+
+    if (_activeTouchId === null) {
+      return null;
+    }
+
+    const touch = findTouchByIdentifier(e.changedTouches, _activeTouchId);
+    if (!touch) {
+      return null;
+    }
+
+    if (res == "up" || res == "cancel") {
+      _activeTouchId = null;
+    }
+    return touch;
+  };
+
+  const firstTouch = (touches: TouchList): Touch | null => touches.item(0) ?? touches[0] ?? null;
+
+  const findTouch = (touches: TouchList, predicate: (touch: Touch) => boolean): Touch | null => {
+    for (let i = 0; i < touches.length; i++) {
+      const touch = touches.item(i) ?? touches[i];
+      if (predicate(touch)) {
+        return touch;
+      }
+    }
+    return null;
+  };
+
+  const findStylusTouch = (touches: TouchList): Touch | null => findTouch(touches, isStylusTouch);
+
+  const findTouchByIdentifier = (touches: TouchList, identifier: number): Touch | null =>
+    findTouch(touches, touch => touch.identifier === identifier);
+
+  const isStylusTouch = (touch: Touch): boolean => (touch as Touch & { touchType?: string }).touchType === "stylus";
 
   return tecack;
 }

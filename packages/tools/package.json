@@ -1,6 +1,6 @@
 {
   "name": "@tecack/tools",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "@tecack/tools",
   "bin": {
     "tecack": "./bin/bin.js"
