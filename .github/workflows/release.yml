@@ -54,5 +54,5 @@ jobs:
       - name: Publish
         run: |
           for pkg in tecack frontend backend dataset shared tools; do
-            npm publish "packages/$pkg" --access public
+            npm publish "./packages/$pkg" --access public
           done
