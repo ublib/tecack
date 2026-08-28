@@ -1,6 +1,6 @@
 {
   "name": "tecack",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "tecack is a simple drawing library for the web.",
   "main": "dist/index.js",
   "scripts": {

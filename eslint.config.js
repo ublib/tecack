@@ -6,7 +6,7 @@ import js from "@eslint/js";
  * @type {import('eslint').Linter.Config}
  */
 const config = [
-  { ignores: ["node_modules", "dist"] },
+  { ignores: ["node_modules", "dist", "bin", "**/node_modules/**", "**/dist/**", "**/bin/**"] },
   js.configs.recommended,
   {
     rules: {
